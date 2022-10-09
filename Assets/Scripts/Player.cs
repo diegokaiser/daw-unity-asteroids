@@ -26,19 +26,39 @@ public class Player : MonoBehaviour
         {
             animator.SetBool("ignite", false);
         }
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+
+        if (Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.LeftArrow) && Input.GetKey(KeyCode.UpArrow))
         {
+            animator.SetBool("ignite", false);
+            animator.SetBool("IgniteRight", true);
+        } else
+        {
+            animator.SetBool("IgniteRight", false);
+        }
+        if (Input.GetKey(KeyCode.D) && Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.RightArrow) && Input.GetKey(KeyCode.UpArrow))
+        {
+            animator.SetBool("ignite", false);
             animator.SetBool("IgniteLeft", true);
         } else
         {
             animator.SetBool("IgniteLeft", false);
         }
+
+        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+        {
+            animator.SetBool("TurnRight", true);            
+        }
+        else
+        {
+            animator.SetBool("TurnRight", false);            
+        }
         if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
         {
-            animator.SetBool("IgniteRight", true);
-        } else
+            animator.SetBool("TurnLeft", true);
+        }
+        else
         {
-            animator.SetBool("IgniteRight", false);
+            animator.SetBool("TurnLeft", false);
         }
         float horizontal = Input.GetAxis("Horizontal");
         transform.eulerAngles = transform.eulerAngles + new Vector3(0, 0, horizontal * rotationSpeed * Time.deltaTime);
