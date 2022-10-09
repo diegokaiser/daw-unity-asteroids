@@ -4,58 +4,43 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    public Bullet bulletPrefab;
-    public float thrustSpeed = 1.0f;
-    public float turnSpeed = 1.0f;
-    private Rigidbody2D _rigidbody;
-    Animator _animator;
-    private bool _thrusting;
-    private float _turnDirection;
+    Rigidbody2D rigidbody;
+    Animator animator;
+    public float speed = 49;
+    public float rotationSpeed = -140;
 
-    private void Awake()
+    void Start()
     {
-        _rigidbody = GetComponent<Rigidbody2D>();
-        _animator = GetComponent<Animator>();
+        rigidbody = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
-    private void Update()
+    void Update()
     {
-        _thrusting = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+        float vertical = Input.GetAxis("Vertical");
+        if (vertical > 0)
         {
-            _turnDirection = 1.0f;
-        } else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-        {
-            _turnDirection = -1.0f;
+            rigidbody.AddForce(transform.up * vertical * speed * Time.deltaTime);
+            animator.SetBool("ignite", true);            
         } else
         {
-            _turnDirection = 0.0f;
-            _animator.SetBool("Igniting", false);
+            animator.SetBool("ignite", false);
         }
-        if (Input.GetKey(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
         {
-            Shoot();
-        }
-    }
-
-    private void FixedUpdate()
-    {
-        if (_thrusting)
+            animator.SetBool("IgniteLeft", true);
+        } else
         {
-            _animator.SetBool("Igniting", true);
-            _rigidbody.AddForce(this.transform.up * this.thrustSpeed);
+            animator.SetBool("IgniteLeft", false);
         }
-
-        if (_turnDirection != 0.0f)
+        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
         {
-            _animator.SetBool("Igniting", true);
-            _rigidbody.AddTorque(_turnDirection * this.turnSpeed);
+            animator.SetBool("IgniteRight", true);
+        } else
+        {
+            animator.SetBool("IgniteRight", false);
         }
-    }
-
-    private void Shoot()
-    {
-        Bullet bullet = Instantiate(this.bulletPrefab, this.transform.position, this.transform.rotation);
-        bullet.Project(this.transform.up);
+        float horizontal = Input.GetAxis("Horizontal");
+        transform.eulerAngles = transform.eulerAngles + new Vector3(0, 0, horizontal * rotationSpeed * Time.deltaTime);
     }
 }
