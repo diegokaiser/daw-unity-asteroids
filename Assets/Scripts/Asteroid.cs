@@ -1,59 +1,66 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Asteroid : MonoBehaviour
 {
-    new Rigidbody2D rigidbody;
-    Animator animator;
-    public float speed;
-    public GameObject[] subAsteroids;
-    public int numberOfAsteroids;
-    private bool isDestroyed = false;
+    public Sprite[] sprites;
+    private SpriteRenderer _spriteRenderer;
+    private Rigidbody2D _rigidbody;
+    public GameObject _gameManager;
+    private GameManager _gameManagerScript;
 
-    void Start()
+    public float asteroidSize = 1.4f;
+    public float asteroidMinSize = 0.7f;
+    public float asteroidMaxSize = 2.1f;
+    public float asteroidSpeed = 50.0f;
+    public float asteroidLifeTime = 30.0f;
+
+    private void Awake()
     {
-        rigidbody = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-        rigidbody.drag = 0;
-        rigidbody.angularDrag = 0;
-        rigidbody.velocity = new Vector3(
-            Random.Range(-1f, 1f),
-            Random.Range(-1f, 1f),
-            0
-        ).normalized * speed;
-        rigidbody.angularVelocity = Random.Range(-50f, 50f);
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        _rigidbody = GetComponent<Rigidbody2D>();
+        _gameManager = GameObject.FindGameObjectWithTag("GameManager");
+        _gameManagerScript = _gameManager.GetComponent<GameManager>();
     }
 
-    private void OnTriggerEnter2D(Collider2D collider)
+    private void Start()
     {
-        if (isDestroyed)
+        _spriteRenderer.sprite = sprites[Random.Range(0, sprites.Length)];
+        this.transform.eulerAngles = new Vector3(0.0f, 0.0f, Random.value * 360.0f);
+        this.transform.localScale = Vector3.one * this.asteroidSize;
+        this.gameObject.tag = "Asteroid";
+    }
+
+    public void SetTrajectory(Vector2 direction)
+    {
+        _rigidbody.AddForce(direction * this.asteroidSpeed);
+        Destroy(this.gameObject, this.asteroidLifeTime);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.tag == "Bullet")
         {
-            return;
-        }
-        if (collider.CompareTag("Bullet"))
-        {
-            isDestroyed = true;
-            animator.SetBool("AsteroidDestroy", true);
-            Destroy(gameObject);
-            Destroy(collider.gameObject);
-            for (var i = 0; i < numberOfAsteroids; i++)
+            if (this.asteroidSize * 0.5f >= this.asteroidMinSize)
             {
-                Instantiate(
-                    subAsteroids[Random.Range(0, subAsteroids.Length)],
-                    transform.position,
-                    Quaternion.identity
-                );
+                CreateSplit();
             }
+            _gameManagerScript.AsteroidDestroyed(this);
+            Destroy(this.gameObject);
         }
-        if (collider.CompareTag("Player"))
+    }
+
+    private void CreateSplit()
+    {
+        int randomInt = Random.Range(0, 2);
+
+        for(int i = 0; i <= randomInt; i ++)
         {
-            var asteroids = FindObjectsOfType<Asteroid>();
-            for (var i = 0; i < asteroids.Length; i++)
-            {
-                Destroy(asteroids[i].gameObject);
-            }
-            collider.GetComponent<Player>().Lose();
+            Vector2 position = this.transform.position;
+            position += Random.insideUnitCircle * 0.5f;
+
+            Asteroid half = Instantiate(this, position, this.transform.rotation);
+            half.asteroidSize = this.asteroidSize * 0.5f;
+            half.SetTrajectory(Random.insideUnitCircle.normalized * this.asteroidSpeed);
         }
     }
 }

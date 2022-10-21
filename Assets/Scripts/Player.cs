@@ -1,103 +1,108 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    new Rigidbody2D rigidbody;
-    Animator animator;
-    public float speed = 49;
-    public float rotationSpeed = -140;
-    public float offsetBullet;
-    public GameObject bulletPrefab;
-    public float shootRate = 0.5f;
-    private bool canShoot = true;
+    private Rigidbody2D _rigidbody;
+    public GameObject _gameManager;
+    private GameManager _gameManagerScript;
+    Animator _animator;
+    public Bullet bulletPrefab;
+    private bool _thrusting;
+    private float _turnDirection;
+    public float thrustSpeed = 1.0f;
+    public float turnSpeed = 1.0f;
 
-    void Start()
+    private void Awake()
     {
-        rigidbody = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
+        _rigidbody = GetComponent<Rigidbody2D>();
+        _animator = GetComponent<Animator>();
+        _gameManagerScript = _gameManager.GetComponent<GameManager>();
     }
 
-    void Update()
-    {
-        float vertical = Input.GetAxis("Vertical");
-        if (vertical > 0)
-        {
-            rigidbody.AddForce(transform.up * vertical * speed * Time.deltaTime);
-            animator.SetBool("ignite", true);
-        } else
-        {
-            animator.SetBool("ignite", false);
-        }
+    private void Update() {
+        _thrusting = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow);
 
         if (Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.LeftArrow) && Input.GetKey(KeyCode.UpArrow))
         {
-            animator.SetBool("ignite", false);
-            animator.SetBool("TurnRight", false);
-            animator.SetBool("IgniteRight", true);
-        } else
+            _animator.SetBool("Ignite", false);
+            _animator.SetBool("IgniteTurnRight", false);
+            _animator.SetBool("IgniteRight", true);
+        }
+        else
         {
-            animator.SetBool("IgniteRight", false);
+            _animator.SetBool("IgniteRight", false);
         }
         if (Input.GetKey(KeyCode.D) && Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.RightArrow) && Input.GetKey(KeyCode.UpArrow))
         {
-            animator.SetBool("ignite", false);
-            animator.SetBool("TurnLeft", false);
-            animator.SetBool("IgniteLeft", true);            
-        } else
+            _animator.SetBool("Ignite", false);
+            _animator.SetBool("IgniteTurnLeft", false);
+            _animator.SetBool("IgniteLeft", true);
+        }
+        else
         {
-            animator.SetBool("IgniteLeft", false);
+            _animator.SetBool("IgniteLeft", false);
         }
 
         if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
         {
-            animator.SetBool("TurnRight", true);
+            _animator.SetBool("IgniteTurnRight", true);
+            _turnDirection = 1.0f;
+        }
+        else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+        {
+            _animator.SetBool("IgniteTurnLeft", true);
+            _turnDirection = -1.0f;
         }
         else
         {
-            animator.SetBool("TurnRight", false);
+            if (_animator.GetBool("IgniteTurnLeft") == true)
+            {
+                _animator.SetBool("IgniteTurnLeft", false);
+            } else
+            {
+                _animator.SetBool("IgniteTurnRight", false);
+            }
+            _turnDirection = 0.0f;
         }
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-        {
-            animator.SetBool("TurnLeft", true);
-        }
-        else
-        {
-            animator.SetBool("TurnLeft", false);
-        }
+
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         {
             Shoot();
         }
-        float horizontal = Input.GetAxis("Horizontal");
-        transform.eulerAngles = transform.eulerAngles + new Vector3(0, 0, horizontal * rotationSpeed * Time.deltaTime);
+    }
+
+    private void FixedUpdate() {
+        if (_thrusting)
+        {
+            _rigidbody.AddForce(this.transform.up * this.thrustSpeed);
+            _animator.SetBool("Ignite", true);
+        }
+        else
+        {
+            _animator.SetBool("Ignite", false);
+        }
+        if (_turnDirection != 0.0f)
+        {
+            _rigidbody.AddTorque(_turnDirection * this.turnSpeed);
+        }
     }
 
     private void Shoot()
     {
-        if (canShoot)
-        {
-            StartCoroutine(FireRate());
-        }
-        
-    }
-    private IEnumerator FireRate()
-    {
-        canShoot = false;
-        var pos = transform.up * offsetBullet + transform.position;
-        var bullet = Instantiate(
-            bulletPrefab, pos, transform.rotation
-        );
-        Destroy(bullet, 6);
-        yield return new WaitForSeconds(shootRate);
-        canShoot = true;
+        Bullet bullet = Instantiate(this.bulletPrefab, this.transform.position, this.transform.rotation);
+        bullet.Project(this.transform.up);
     }
 
-    public void Lose()
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        //animator.SetBool("Explotion", true);
-        rigidbody.velocity = Vector3.zero;
-        transform.position = Vector3.zero;
+        if (collision.gameObject.tag == "Asteroid")
+        {
+            _rigidbody.velocity = Vector3.zero;
+            _rigidbody.angularVelocity = 0.0f;
+
+            this.gameObject.SetActive(false);
+
+            _gameManagerScript.PlayerDied();
+        }
     }
 }
